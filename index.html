@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>コード進行練習</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --surface2:  #21262d;
+      --border:    #30363d;
+      --accent:    #388bfd;
+      --accent-bg: #1f3a6e;
+      --success:   #3fb950;
+      --success-bg:#122d1a;
+      --danger:    #f85149;
+      --danger-bg: #3a1212;
+      --warn:      #d29922;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --dim:       #484f58;
+    }
+
+    body {
+      font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 20px 60px;
+    }
+
+    /* ── Header ── */
+    .header {
+      width: 100%; max-width: 960px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 0 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 22px;
+    }
+    .header h1 { font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
+
+    .midi-row { display: flex; align-items: center; gap: 10px; }
+    .midi-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--danger);
+      transition: background .35s;
+      flex-shrink: 0;
+    }
+    .midi-dot.pending    { background: var(--warn); }
+    .midi-dot.connected  { background: var(--success); }
+    .midi-label { font-size: 12px; color: var(--muted); max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Controls ── */
+    .controls {
+      width: 100%; max-width: 960px;
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      margin-bottom: 22px;
+    }
+    .ctrl-group { display: flex; align-items: center; gap: 6px; }
+    .ctrl-label  { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+    select, button {
+      font-family: inherit; font-size: 13px;
+      background: var(--surface2); color: var(--text);
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 6px 10px; cursor: pointer; outline: none;
+      transition: border-color .15s, background .15s;
+    }
+    select:focus, button:hover { border-color: var(--accent); }
+
+    .toggle {
+      border-radius: 20px; padding: 5px 14px;
+      font-size: 12px; color: var(--muted);
+    }
+    .toggle.on { background: var(--accent-bg); border-color: var(--accent); color: #fff; }
+
+    /* ── Progression bar ── */
+    .prog-bar {
+      width: 100%; max-width: 960px;
+      display: flex; gap: 6px; overflow-x: auto;
+      padding-bottom: 4px; margin-bottom: 28px;
+    }
+    .prog-bar::-webkit-scrollbar { height: 4px; }
+    .prog-bar::-webkit-scrollbar-track { background: transparent; }
+    .prog-bar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .chord-block {
+      flex: 1; min-width: 56px;
+      padding: 8px 6px; border-radius: 8px;
+      border: 2px solid var(--border); background: var(--surface);
+      text-align: center; font-size: 13px; font-weight: 500;
+      color: var(--muted); cursor: pointer; white-space: nowrap;
+      transition: all .15s;
+      position: relative;
+    }
+    .chord-block:hover { border-color: var(--accent); color: var(--text); }
+    .chord-block.active {
+      border-color: var(--accent); background: var(--accent-bg);
+      color: #fff; font-weight: 700;
+    }
+    .chord-block.done {
+      border-color: var(--success); background: var(--success-bg);
+      color: var(--success);
+    }
+    .chord-block .beat-label {
+      display: block; font-size: 9px; color: var(--dim); margin-top: 2px;
+    }
+
+    /* ── Main area ── */
+    .main-area {
+      width: 100%; max-width: 960px;
+      display: grid; grid-template-columns: 1fr 2fr 1fr;
+      gap: 14px; align-items: center;
+      margin-bottom: 22px;
+    }
+    .side-panel {
+      padding: 20px 14px; border-radius: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      text-align: center;
+    }
+    .side-panel .sl { font-size: 10px; text-transform: uppercase; letter-spacing: .6px; color: var(--dim); margin-bottom: 10px; }
+    .side-panel .sn { font-size: 26px; font-weight: 600; color: var(--muted); }
+
+    .center-panel {
+      padding: 36px 28px; border-radius: 16px;
+      background: var(--surface); border: 2px solid var(--accent);
+      text-align: center; position: relative;
+      transition: border-color .3s;
+    }
+    .center-panel.correct { border-color: var(--success); }
+    .center-panel.hidden-mode .chord-huge { filter: blur(12px); }
+
+    .chord-huge {
+      font-size: 84px; font-weight: 800; line-height: 1;
+      color: var(--text); transition: color .25s;
+      letter-spacing: -2px;
+      user-select: none;
+    }
+    .center-panel.correct .chord-huge { color: var(--success); }
+
+    .chord-position {
+      margin-top: 10px; font-size: 12px; color: var(--dim);
+    }
+
+    /* ── Detection ── */
+    .detection {
+      width: 100%; max-width: 960px;
+      display: flex; align-items: center; justify-content: center;
+      gap: 18px; padding: 18px 24px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; margin-bottom: 20px;
+    }
+    .det-label { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--dim); }
+    .det-chord { font-size: 38px; font-weight: 700; color: var(--text); min-width: 120px; text-align: center; }
+    .badge {
+      padding: 5px 14px; border-radius: 20px;
+      font-size: 13px; font-weight: 600; white-space: nowrap;
+    }
+    .badge.waiting  { background: var(--surface2); color: var(--muted);   border: 1px solid var(--border); }
+    .badge.correct  { background: var(--success-bg); color: var(--success); border: 1px solid var(--success); }
+    .badge.incorrect{ background: var(--danger-bg);  color: var(--danger);  border: 1px solid var(--danger); }
+
+    /* ── Nav ── */
+    .nav-area {
+      width: 100%; max-width: 960px;
+      display: flex; justify-content: center; gap: 12px;
+      margin-bottom: 28px;
+    }
+    .nav-btn {
+      padding: 9px 22px; font-size: 14px; border-radius: 8px;
+    }
+    .nav-btn:hover { background: var(--border); }
+
+    /* ── Piano ── */
+    .piano-wrap {
+      width: 100%; max-width: 960px;
+      overflow-x: auto; padding-bottom: 8px;
+      border-radius: 10px;
+    }
+    .piano-wrap::-webkit-scrollbar { height: 5px; }
+    .piano-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .piano {
+      position: relative;
+      height: 110px;
+      display: inline-block;
+      white-space: nowrap;
+    }
+
+    .wkey, .bkey {
+      position: absolute; top: 0;
+      border-radius: 0 0 4px 4px;
+      transition: background .04s;
+    }
+    .wkey {
+      width: 34px; height: 110px;
+      background: #dde1e7;
+      border: 1px solid #aaa;
+      z-index: 1;
+    }
+    .bkey {
+      width: 22px; height: 68px;
+      background: #1c1c28;
+      border: 1px solid #000;
+      z-index: 2;
+    }
+    .wkey.pressed  { background: var(--accent); }
+    .wkey.target   { background: #a8c8ff; }
+    .bkey.pressed  { background: var(--accent); }
+    .bkey.target   { background: #5588cc; }
+
+    .note-name {
+      position: absolute; bottom: 5px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 8px; color: #888; pointer-events: none;
+      user-select: none;
+    }
+    .bkey .note-name { color: #aaa; bottom: 4px; }
+
+    /* ── Notes row ── */
+    .notes-row {
+      width: 100%; max-width: 960px;
+      margin-top: 12px;
+      display: flex; gap: 6px; flex-wrap: wrap; min-height: 28px;
+      align-items: center;
+    }
+    .note-chip {
+      padding: 3px 10px; border-radius: 12px;
+      font-size: 12px; font-weight: 600;
+      background: var(--accent-bg); color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .main-area { grid-template-columns: 1fr; }
+      .side-panel { display: none; }
+      .chord-huge { font-size: 64px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🎹 コード進行練習</h1>
+  <div class="midi-row">
+    <div class="midi-dot" id="midiDot"></div>
+    <span class="midi-label" id="midiLabel">未接続</span>
+    <select id="midiSelect" style="max-width:200px">
+      <option value="">デバイスを選択…</option>
+    </select>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="ctrl-group">
+    <span class="ctrl-label">進行:</span>
+    <select id="progSel"></select>
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">キー:</span>
+    <select id="keySel">
+      <option value="0">C</option>
+      <option value="1">C#/Db</option>
+      <option value="2">D</option>
+      <option value="3">D#/Eb</option>
+      <option value="4">E</option>
+      <option value="5">F</option>
+      <option value="6">F#/Gb</option>
+      <option value="7">G</option>
+      <option value="8">G#/Ab</option>
+      <option value="9">A</option>
+      <option value="10">A#/Bb</option>
+      <option value="11">B</option>
+    </select>
+  </div>
+  <button class="toggle on" id="autoBtn" onclick="toggleAuto()">自動進む: ON</button>
+  <button class="toggle on" id="hintBtn" onclick="toggleHint()">コード名を表示: ON</button>
+</div>
+
+<div class="prog-bar" id="progBar"></div>
+
+<div class="main-area">
+  <div class="side-panel">
+    <div class="sl">前のコード</div>
+    <div class="sn" id="prevName">—</div>
+  </div>
+  <div class="center-panel" id="centerPanel">
+    <div class="chord-huge" id="bigChord">---</div>
+    <div class="chord-position" id="chordPos">0 / 0</div>
+  </div>
+  <div class="side-panel">
+    <div class="sl">次のコード</div>
+    <div class="sn" id="nextName">—</div>
+  </div>
+</div>
+
+<div class="detection">
+  <span class="det-label">弾いているコード</span>
+  <span class="det-chord" id="detChord">—</span>
+  <span class="badge waiting" id="badge">待機中</span>
+</div>
+
+<div class="nav-area">
+  <button class="nav-btn" onclick="movePrev()">◀ 前へ</button>
+  <button class="nav-btn" onclick="doReset()">↺ リセット</button>
+  <button class="nav-btn" onclick="moveNext()">次へ ▶</button>
+</div>
+
+<div class="piano-wrap">
+  <div class="piano" id="piano"></div>
+</div>
+
+<div class="notes-row" id="notesRow"></div>
+
+<script>
+// ─── Chord type definitions ───────────────────────────────────────────────────
+const TYPES = {
+  '':      { iv: [0,4,7],          label: ''      },
+  'm':     { iv: [0,3,7],          label: 'm'     },
+  '7':     { iv: [0,4,7,10],       label: '7'     },
+  'M7':    { iv: [0,4,7,11],       label: 'M7'    },
+  'm7':    { iv: [0,3,7,10],       label: 'm7'    },
+  'dim':   { iv: [0,3,6],          label: '°'     },
+  'dim7':  { iv: [0,3,6,9],        label: '°7'    },
+  'm7b5':  { iv: [0,3,6,10],       label: 'ø'     },
+  'sus4':  { iv: [0,5,7],          label: 'sus4'  },
+  'sus2':  { iv: [0,2,7],          label: 'sus2'  },
+  'aug':   { iv: [0,4,8],          label: '+'     },
+  '6':     { iv: [0,4,7,9],        label: '6'     },
+  'm6':    { iv: [0,3,7,9],        label: 'm6'    },
+  'add9':  { iv: [0,2,4,7],        label: 'add9'  },
+  '9':     { iv: [0,2,4,7,10],     label: '9'     },
+  'M9':    { iv: [0,2,4,7,11],     label: 'M9'    },
+  'm9':    { iv: [0,2,3,7,10],     label: 'm9'    },
+};
+
+// Preferred display names (mix of # and b common in jazz)
+const PC_NAMES = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
+
+// ─── Progressions ─────────────────────────────────────────────────────────────
+// Each chord: { root (pitch class 0-11), type (key in TYPES) }
+const PROGS = [
+  {
+    name: 'ii–V–I (Cメジャー / 基本ジャズ)',
+    chords: [
+      { root:2,  type:'m7'  },
+      { root:7,  type:'7'   },
+      { root:0,  type:'M7'  },
+    ]
+  },
+  {
+    name: 'I–vi–ii–V (ジャズ ターンアラウンド)',
+    chords: [
+      { root:0,  type:'M7'  },
+      { root:9,  type:'m7'  },
+      { root:2,  type:'m7'  },
+      { root:7,  type:'7'   },
+    ]
+  },
+  {
+    name: 'I–V–vi–IV (ポップ定番)',
+    chords: [
+      { root:0,  type:''    },
+      { root:7,  type:''    },
+      { root:9,  type:'m'   },
+      { root:5,  type:''    },
+    ]
+  },
+  {
+    name: 'I–vi–IV–V (50年代 / Do-Wop)',
+    chords: [
+      { root:0,  type:''    },
+      { root:9,  type:'m'   },
+      { root:5,  type:''    },
+      { root:7,  type:''    },
+    ]
+  },
+  {
+    name: 'カノン進行',
+    chords: [
+      { root:0,  type:''    },
+      { root:7,  type:''    },
+      { root:9,  type:'m'   },
+      { root:4,  type:'m'   },
+      { root:5,  type:''    },
+      { root:0,  type:''    },
+      { root:5,  type:''    },
+      { root:7,  type:''    },
+    ]
+  },
+  {
+    name: '小室進行 (vi–IV–I–V)',
+    chords: [
+      { root:9,  type:'m'   },
+      { root:5,  type:''    },
+      { root:0,  type:''    },
+      { root:7,  type:''    },
+    ]
+  },
+  {
+    name: '4–5–3–6 (J-pop)',
+    chords: [
+      { root:5,  type:''    },
+      { root:7,  type:''    },
+      { root:4,  type:'m'   },
+      { root:9,  type:'m'   },
+    ]
+  },
+  {
+    name: '12小節ブルース (C)',
+    chords: [
+      { root:0,  type:'7'   },
+      { root:0,  type:'7'   },
+      { root:0,  type:'7'   },
+      { root:0,  type:'7'   },
+      { root:5,  type:'7'   },
+      { root:5,  type:'7'   },
+      { root:0,  type:'7'   },
+      { root:0,  type:'7'   },
+      { root:7,  type:'7'   },
+      { root:5,  type:'7'   },
+      { root:0,  type:'7'   },
+      { root:7,  type:'7'   },
+    ]
+  },
+  {
+    name: '枯葉 Aセクション (Gm)',
+    chords: [
+      { root:0,  type:'m7'  },
+      { root:5,  type:'7'   },
+      { root:10, type:'M7'  },
+      { root:3,  type:'M7'  },
+      { root:9,  type:'m7b5'},
+      { root:2,  type:'7'   },
+      { root:7,  type:'m7'  },
+      { root:7,  type:'m7'  },
+    ]
+  },
+  {
+    name: 'リズムチェンジ A (Bb)',
+    chords: [
+      { root:10, type:'M7'  },
+      { root:7,  type:'7'   },
+      { root:0,  type:'m7'  },
+      { root:5,  type:'7'   },
+      { root:2,  type:'m7'  },
+      { root:7,  type:'7'   },
+      { root:0,  type:'m7'  },
+      { root:5,  type:'7'   },
+    ]
+  },
+  {
+    name: 'I–IV–V–I (トライアド)',
+    chords: [
+      { root:0,  type:''    },
+      { root:5,  type:''    },
+      { root:7,  type:''    },
+      { root:0,  type:''    },
+    ]
+  },
+  {
+    name: 'im–VII–VI–VII (マイナー)',
+    chords: [
+      { root:9,  type:'m'   },
+      { root:7,  type:''    },
+      { root:5,  type:''    },
+      { root:7,  type:''    },
+    ]
+  },
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let midiAccess  = null;
+let midiInput   = null;
+let pressed     = new Set();   // MIDI note numbers currently held
+let progIdx     = 0;
+let chordIdx    = 0;
+let transpose   = 0;
+let autoAdvance = true;
+let showHint    = true;
+let correctTimer = null;
+let doneSet     = new Set();   // chord indices played correctly this loop
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function chordName(root, type) {
+  const r = (root + transpose + 12) % 12;
+  return PC_NAMES[r] + (TYPES[type]?.label ?? '');
+}
+
+function getPitchClasses(noteSet) {
+  return [...new Set([...noteSet].map(n => n % 12))];
+}
+
+function currentProg()  { return PROGS[progIdx]; }
+function currentTarget() {
+  const c = currentProg().chords[chordIdx];
+  return { root: (c.root + transpose + 12) % 12, type: c.type };
+}
+function targetPCs() {
+  const t = currentTarget();
+  return TYPES[t.type].iv.map(i => (t.root + i) % 12);
+}
+
+// ─── Chord detection ──────────────────────────────────────────────────────────
+function detectChord() {
+  if (pressed.size < 2) return null;
+  const pcs = getPitchClasses(pressed);
+
+  let best = null, bestScore = -Infinity;
+
+  for (let root = 0; root < 12; root++) {
+    for (const [tk, td] of Object.entries(TYPES)) {
+      const chordPCs = td.iv.map(i => (root + i) % 12);
+      const hits = chordPCs.filter(pc => pcs.includes(pc)).length;
+      if (hits < 2) continue;
+      const coverage = hits / chordPCs.length;
+      const extra    = pcs.filter(pc => !chordPCs.includes(pc)).length;
+      const score    = coverage * 10 - extra * 1.2;
+      if (score > bestScore) {
+        bestScore = score;
+        best = { root, type: tk, score };
+      }
+    }
+  }
+  return best && best.score > 1.5 ? best : null;
+}
+
+function chordsMatch(det, tgt) {
+  return det && tgt && det.root === tgt.root && det.type === tgt.type;
+}
+
+// ─── Navigation ──────────────────────────────────────────────────────────────
+function moveNext() {
+  const len = currentProg().chords.length;
+  chordIdx = (chordIdx + 1) % len;
+  if (chordIdx === 0) doneSet.clear();
+  pressed.clear();
+  render(); update();
+}
+function movePrev() {
+  const len = currentProg().chords.length;
+  chordIdx = (chordIdx - 1 + len) % len;
+  pressed.clear();
+  render(); update();
+}
+function doReset() {
+  chordIdx = 0; doneSet.clear(); pressed.clear();
+  render(); update();
+}
+function toggleAuto() {
+  autoAdvance = !autoAdvance;
+  const b = document.getElementById('autoBtn');
+  b.textContent = `自動進む: ${autoAdvance ? 'ON' : 'OFF'}`;
+  b.classList.toggle('on', autoAdvance);
+}
+function toggleHint() {
+  showHint = !showHint;
+  const b = document.getElementById('hintBtn');
+  b.textContent = `コード名を表示: ${showHint ? 'ON' : 'OFF'}`;
+  b.classList.toggle('on', showHint);
+  render(); update();
+}
+
+// ─── MIDI ─────────────────────────────────────────────────────────────────────
+async function initMIDI() {
+  const dot   = document.getElementById('midiDot');
+  const label = document.getElementById('midiLabel');
+  if (!navigator.requestMIDIAccess) {
+    label.textContent = 'Web MIDI非対応 (Chromeを使用してください)';
+    return;
+  }
+  try {
+    dot.className = 'midi-dot pending';
+    label.textContent = 'アクセス許可を要求中…';
+    midiAccess = await navigator.requestMIDIAccess({ sysex: false });
+    dot.className = 'midi-dot';
+    label.textContent = 'デバイスなし';
+    populateDevices();
+    midiAccess.onstatechange = populateDevices;
+  } catch {
+    dot.className = 'midi-dot';
+    label.textContent = 'アクセス拒否';
+  }
+}
+
+function populateDevices() {
+  const sel  = document.getElementById('midiSelect');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">デバイスを選択…</option>';
+  for (const [id, inp] of midiAccess.inputs) {
+    const o = document.createElement('option');
+    o.value = id; o.textContent = inp.name;
+    sel.appendChild(o);
+  }
+  if (prev) sel.value = prev;
+  // Auto-select the first device if none chosen yet
+  if (!midiInput && midiAccess.inputs.size > 0) {
+    const first = midiAccess.inputs.values().next().value;
+    sel.value = first.id;
+    connectDevice(first.id);
+  }
+}
+
+function connectDevice(id) {
+  if (midiInput) midiInput.onmidimessage = null;
+  const dot   = document.getElementById('midiDot');
+  const label = document.getElementById('midiLabel');
+  if (!id) {
+    midiInput = null;
+    dot.className = 'midi-dot';
+    label.textContent = 'デバイスなし';
+    return;
+  }
+  midiInput = midiAccess.inputs.get(id);
+  if (midiInput) {
+    midiInput.onmidimessage = onMIDI;
+    dot.className = 'midi-dot connected';
+    label.textContent = midiInput.name;
+  }
+}
+
+function onMIDI(e) {
+  const [status, note, vel] = e.data;
+  const cmd = status & 0xf0;
+  if (cmd === 0x90 && vel > 0) pressed.add(note);
+  else if (cmd === 0x80 || (cmd === 0x90 && vel === 0)) pressed.delete(note);
+  else return;
+  updatePiano();
+  updateNotesRow();
+  update();
+}
+
+// ─── Render (static structure) ────────────────────────────────────────────────
+function render() {
+  const prog = currentProg();
+
+  // Progression bar
+  const bar = document.getElementById('progBar');
+  bar.innerHTML = '';
+  prog.chords.forEach((c, i) => {
+    const div = document.createElement('div');
+    div.className = 'chord-block';
+    if (i === chordIdx) div.classList.add('active');
+    else if (doneSet.has(i)) div.classList.add('done');
+    div.textContent = chordName(c.root, c.type);
+    div.onclick = () => { chordIdx = i; pressed.clear(); render(); update(); };
+    bar.appendChild(div);
+  });
+
+  // Side names
+  const prev = prog.chords[(chordIdx - 1 + prog.chords.length) % prog.chords.length];
+  const next = prog.chords[(chordIdx + 1) % prog.chords.length];
+  document.getElementById('prevName').textContent =
+    prog.chords.length > 1 ? chordName(prev.root, prev.type) : '—';
+  document.getElementById('nextName').textContent =
+    prog.chords.length > 1 ? chordName(next.root, next.type) : '—';
+
+  // Center big chord
+  const cur = prog.chords[chordIdx];
+  const panel = document.getElementById('centerPanel');
+  if (showHint) {
+    document.getElementById('bigChord').textContent = chordName(cur.root, cur.type);
+    panel.classList.remove('hidden-mode');
+  } else {
+    document.getElementById('bigChord').textContent = '?';
+    panel.classList.add('hidden-mode');
+  }
+  document.getElementById('chordPos').textContent =
+    `${chordIdx + 1} / ${prog.chords.length}`;
+
+  updatePiano();
+}
+
+// ─── Update (dynamic: detection, badges) ─────────────────────────────────────
+function update() {
+  const det    = detectChord();
+  const tgt    = currentTarget();
+  const isMatch = chordsMatch(det, tgt);
+
+  const detEl  = document.getElementById('detChord');
+  const badge  = document.getElementById('badge');
+  const center = document.getElementById('centerPanel');
+
+  if (!det || pressed.size === 0) {
+    detEl.textContent = '—';
+    badge.textContent = '待機中';
+    badge.className   = 'badge waiting';
+    center.classList.remove('correct');
+    clearTimer();
+    return;
+  }
+
+  detEl.textContent = PC_NAMES[det.root] + (TYPES[det.type]?.label ?? '');
+
+  if (isMatch) {
+    badge.textContent = '✓ 正解!';
+    badge.className   = 'badge correct';
+    center.classList.add('correct');
+    doneSet.add(chordIdx);
+    render(); // refresh block colors
+
+    if (autoAdvance && !correctTimer) {
+      correctTimer = setTimeout(() => {
+        correctTimer = null;
+        moveNext();
+      }, 2000);
+    }
+  } else {
+    badge.textContent = '✗ 不一致';
+    badge.className   = 'badge incorrect';
+    center.classList.remove('correct');
+    clearTimer();
+  }
+}
+
+function clearTimer() {
+  if (correctTimer) { clearTimeout(correctTimer); correctTimer = null; }
+}
+
+// ─── Notes row ───────────────────────────────────────────────────────────────
+function updateNotesRow() {
+  const row = document.getElementById('notesRow');
+  row.innerHTML = '';
+  const pcs = getPitchClasses(pressed);
+  pcs.sort((a,b) => a - b).forEach(pc => {
+    const chip = document.createElement('div');
+    chip.className = 'note-chip';
+    chip.textContent = PC_NAMES[pc];
+    row.appendChild(chip);
+  });
+}
+
+// ─── Piano ───────────────────────────────────────────────────────────────────
+const W = 34, GAP = 1;  // white key width + gap
+const BW = 22, BH = 68;
+const WH = 110;
+
+// Pitch classes that are black keys
+const BLACK_PCS = new Set([1, 3, 6, 8, 10]);
+
+function buildPiano() {
+  const piano = document.getElementById('piano');
+  piano.innerHTML = '';
+
+  const startMidi = 36;  // C2
+  const endMidi   = 96;  // C7
+
+  // Collect white notes to determine x positions
+  const whiteMidis = [];
+  for (let n = startMidi; n <= endMidi; n++) {
+    if (!BLACK_PCS.has(n % 12)) whiteMidis.push(n);
+  }
+
+  piano.style.width  = `${whiteMidis.length * (W + GAP)}px`;
+  piano.style.height = `${WH}px`;
+
+  // White keys
+  whiteMidis.forEach((note, idx) => {
+    const el = document.createElement('div');
+    el.className = 'wkey';
+    el.dataset.note = note;
+    el.style.left = `${idx * (W + GAP)}px`;
+    el.style.top  = '0';
+    el.style.width  = `${W}px`;
+    el.style.height = `${WH}px`;
+    const pc = note % 12;
+    if (pc === 0) {
+      const lbl = document.createElement('span');
+      lbl.className = 'note-name';
+      lbl.textContent = `C${Math.floor(note / 12) - 1}`;
+      el.appendChild(lbl);
+    }
+    piano.appendChild(el);
+  });
+
+  // Black keys: sit between the white key to the left (note-1) and right (note+1)
+  for (let note = startMidi; note <= endMidi; note++) {
+    if (!BLACK_PCS.has(note % 12)) continue;
+    const leftWhiteIdx = whiteMidis.indexOf(note - 1);
+    if (leftWhiteIdx === -1) continue;
+    const el = document.createElement('div');
+    el.className = 'bkey';
+    el.dataset.note = note;
+    const leftX = (leftWhiteIdx + 1) * (W + GAP) - BW / 2;
+    el.style.left   = `${leftX}px`;
+    el.style.top    = '0';
+    el.style.width  = `${BW}px`;
+    el.style.height = `${BH}px`;
+    piano.appendChild(el);
+  }
+}
+
+function updatePiano() {
+  const tpcs = targetPCs();
+  document.querySelectorAll('[data-note]').forEach(el => {
+    const note = parseInt(el.dataset.note);
+    const pc   = note % 12;
+    const isP  = pressed.has(note);
+    const isT  = showHint && tpcs.includes(pc);
+    el.classList.toggle('pressed', isP);
+    el.classList.toggle('target',  isT && !isP);
+  });
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+function populateProgs() {
+  const sel = document.getElementById('progSel');
+  PROGS.forEach((p, i) => {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = p.name;
+    sel.appendChild(o);
+  });
+  sel.addEventListener('change', () => {
+    progIdx = parseInt(sel.value);
+    chordIdx = 0; doneSet.clear(); pressed.clear();
+    render(); update();
+  });
+}
+
+document.getElementById('midiSelect').addEventListener('change', e => connectDevice(e.target.value));
+document.getElementById('keySel').addEventListener('change', e => {
+  transpose = parseInt(e.target.value);
+  doneSet.clear(); pressed.clear();
+  render(); update();
+});
+
+populateProgs();
+buildPiano();
+render();
+update();
+initMIDI();
+</script>
+</body>
+</html>
