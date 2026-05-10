@@ -235,7 +235,7 @@
 <body>
 
   <div class="header">
-    <h1>🎹 コード進行練習</h1>
+    <h1>🎹 コード進行練習 <span style="font-size:12px;color:var(--muted);font-weight:400">129種</span></h1>
     <div class="midi-row">
       <div class="midi-dot" id="midiDot"></div>
       <span class="midi-label" id="midiLabel">未接続</span>
@@ -248,7 +248,8 @@
   <div class="controls">
     <div class="ctrl-group">
       <span class="ctrl-label">進行:</span>
-      <select id="progSel"></select>
+      <select id="progSel" style="max-width:320px"></select>
+      <button class="toggle" onclick="randomProg()" title="ランダム選択">🎲</button>
     </div>
     <div class="ctrl-group">
       <span class="ctrl-label">キー:</span>
@@ -331,136 +332,166 @@ const TYPES = {
 // Preferred display names
 const PC_NAMES = ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'];
 
-// ─── Progressions ─────────────────────────────────────────────────────────────
-const PROGS = [
-  {
-    name: 'ii–V–I (Cメジャー / 基本ジャズ)',
-    chords: [
-      { root:2, type:'m7' },
-      { root:7, type:'7' },
-      { root:0, type:'M7' },
-    ]
-  },
-  {
-    name: 'I–vi–ii–V (ジャズ ターンアラウンド)',
-    chords: [
-      { root:0, type:'M7' },
-      { root:9, type:'m7' },
-      { root:2, type:'m7' },
-      { root:7, type:'7' },
-    ]
-  },
-  {
-    name: 'I–V–vi–IV (ポップ定番)',
-    chords: [
-      { root:0, type:'' },
-      { root:7, type:'' },
-      { root:9, type:'m' },
-      { root:5, type:'' },
-    ]
-  },
-  {
-    name: 'I–vi–IV–V (50年代 / Do-Wop)',
-    chords: [
-      { root:0, type:'' },
-      { root:9, type:'m' },
-      { root:5, type:'' },
-      { root:7, type:'' },
-    ]
-  },
-  {
-    name: 'カノン進行',
-    chords: [
-      { root:0, type:'' },
-      { root:7, type:'' },
-      { root:9, type:'m' },
-      { root:4, type:'m' },
-      { root:5, type:'' },
-      { root:0, type:'' },
-      { root:5, type:'' },
-      { root:7, type:'' },
-    ]
-  },
-  {
-    name: '小室進行 (vi–IV–I–V)',
-    chords: [
-      { root:9, type:'m' },
-      { root:5, type:'' },
-      { root:0, type:'' },
-      { root:7, type:'' },
-    ]
-  },
-  {
-    name: '4–5–3–6 (J-pop)',
-    chords: [
-      { root:5, type:'' },
-      { root:7, type:'' },
-      { root:4, type:'m' },
-      { root:9, type:'m' },
-    ]
-  },
-  {
-    name: '12小節ブルース (C)',
-    chords: [
-      { root:0, type:'7' },
-      { root:0, type:'7' },
-      { root:0, type:'7' },
-      { root:0, type:'7' },
-      { root:5, type:'7' },
-      { root:5, type:'7' },
-      { root:0, type:'7' },
-      { root:0, type:'7' },
-      { root:7, type:'7' },
-      { root:5, type:'7' },
-      { root:0, type:'7' },
-      { root:7, type:'7' },
-    ]
-  },
-  {
-    name: '枯葉 Aセクション (Gm)',
-    chords: [
-      { root:0, type:'m7' },
-      { root:5, type:'7' },
-      { root:10, type:'M7' },
-      { root:3, type:'M7' },
-      { root:9, type:'m7b5'},
-      { root:2, type:'7' },
-      { root:7, type:'m7' },
-      { root:7, type:'m7' },
-    ]
-  },
-  {
-    name: 'リズムチェンジ A (Bb)',
-    chords: [
-      { root:10, type:'M7' },
-      { root:7, type:'7' },
-      { root:0, type:'m7' },
-      { root:5, type:'7' },
-      { root:2, type:'m7' },
-      { root:7, type:'7' },
-      { root:0, type:'m7' },
-      { root:5, type:'7' },
-    ]
-  },
-  {
-    name: 'I–IV–V–I (トライアド)',
-    chords: [
-      { root:0, type:'' },
-      { root:5, type:'' },
-      { root:7, type:'' },
-      { root:0, type:'' },
-    ]
-  },
-  {
-    name: 'im–VII–VI–VII (マイナー)',
-    chords: [
-      { root:9, type:'m' },
-      { root:7, type:'' },
-      { root:5, type:'' },
-      { root:7, type:'' },
-    ]
-  },
+// ─── Progressions (129種類 カテゴリ別) ────────────────────────────────────────
+const PROG_CATEGORIES = [
+  { name: '🎤 ポップス定番', progs: [
+    { name: '王道ポップ (I-V-vi-IV)', chords: [{root:0,type:''},{root:7,type:''},{root:9,type:'m'},{root:5,type:''}] },
+    { name: '逆王道 (vi-IV-I-V)', chords: [{root:9,type:'m'},{root:5,type:''},{root:0,type:''},{root:7,type:''}] },
+    { name: 'Let It Be進行', chords: [{root:0,type:''},{root:7,type:''},{root:9,type:'m'},{root:4,type:'m'},{root:5,type:''}] },
+    { name: 'カノン進行', chords: [{root:0,type:''},{root:7,type:''},{root:9,type:'m'},{root:4,type:'m'},{root:5,type:''},{root:0,type:''},{root:5,type:''},{root:7,type:''}] },
+    { name: '50s進行 (I-vi-IV-V)', chords: [{root:0,type:''},{root:9,type:'m'},{root:5,type:''},{root:7,type:''}] },
+    { name: '感動バラード (I-V/VII-vi-IV)', chords: [{root:0,type:''},{root:7,type:''},{root:9,type:'m'},{root:5,type:''}] },
+    { name: 'ポップロック (I-IV-V-IV)', chords: [{root:0,type:''},{root:5,type:''},{root:7,type:''},{root:5,type:''}] },
+    { name: '青春パンク (I-V-IV-V)', chords: [{root:0,type:''},{root:7,type:''},{root:5,type:''},{root:7,type:''}] },
+    { name: '卒業ソング (IV-V-iii-vi)', chords: [{root:5,type:''},{root:7,type:''},{root:4,type:'m'},{root:9,type:'m'}] },
+    { name: 'J-POP王道 (IV-V-I)', chords: [{root:5,type:''},{root:7,type:''},{root:0,type:''},{root:0,type:''}] },
+    { name: '丸サ進行 (IVM7-V7-IIIm7-VIm)', chords: [{root:5,type:'M7'},{root:7,type:'7'},{root:4,type:'m7'},{root:9,type:'m'}] },
+    { name: 'Just The Two Of Us進行', chords: [{root:5,type:'M7'},{root:4,type:'7'},{root:9,type:'m7'},{root:0,type:'7'}] },
+    { name: '小室進行 (vi-IV-V-I)', chords: [{root:9,type:'m'},{root:5,type:''},{root:7,type:''},{root:0,type:''}] },
+    { name: 'いきものがかり風 (I-III7-vi-IV)', chords: [{root:0,type:''},{root:4,type:'7'},{root:9,type:'m'},{root:5,type:''}] },
+    { name: 'ウェディング (I-IVM7-V-I)', chords: [{root:0,type:''},{root:5,type:'M7'},{root:7,type:''},{root:0,type:''}] },
+  ]},
+  { name: '🎸 ロック', progs: [
+    { name: 'ロック基本 (I-IV-V-I)', chords: [{root:0,type:''},{root:5,type:''},{root:7,type:''},{root:0,type:''}] },
+    { name: 'ブルースロック', chords: [{root:0,type:''},{root:0,type:''},{root:5,type:''},{root:0,type:''},{root:7,type:''},{root:5,type:''},{root:0,type:''},{root:7,type:''}] },
+    { name: 'グランジ (I-bIII-bVII-IV)', chords: [{root:0,type:''},{root:3,type:''},{root:10,type:''},{root:5,type:''}] },
+    { name: 'パンク3コード (I-IV-V)', chords: [{root:0,type:''},{root:5,type:''},{root:7,type:''}] },
+    { name: 'ハードロック (I-bVII-IV-I)', chords: [{root:0,type:''},{root:10,type:''},{root:5,type:''},{root:0,type:''}] },
+    { name: 'メタルリフ (i-bVI-bVII-i)', chords: [{root:9,type:'m'},{root:5,type:''},{root:7,type:''},{root:9,type:'m'}] },
+    { name: 'オルタナ (I-bVII-IV)', chords: [{root:0,type:''},{root:10,type:''},{root:5,type:''}] },
+    { name: 'プログレ風', chords: [{root:9,type:'m'},{root:0,type:''},{root:7,type:''},{root:2,type:''},{root:5,type:''}] },
+    { name: 'シューゲイザー (I-iii-IV-ii)', chords: [{root:0,type:''},{root:4,type:'m'},{root:5,type:''},{root:2,type:'m'}] },
+    { name: 'ポストロック (I-vi-iii-IV)', chords: [{root:0,type:''},{root:9,type:'m'},{root:4,type:'m'},{root:5,type:''}] },
+    { name: 'サーフロック (i-bVII-bVI-V)', chords: [{root:9,type:'m'},{root:7,type:''},{root:5,type:''},{root:4,type:''}] },
+    { name: 'ガレージロック (I-I-bVII-IV)', chords: [{root:0,type:''},{root:0,type:''},{root:10,type:''},{root:5,type:''}] },
+    { name: 'ストーナー (i-iv-bVI-v)', chords: [{root:0,type:'m'},{root:5,type:'m'},{root:8,type:''},{root:7,type:'m'}] },
+    { name: 'ポップパンク', chords: [{root:0,type:''},{root:7,type:''},{root:9,type:'m'},{root:5,type:''},{root:0,type:''},{root:7,type:''},{root:5,type:''},{root:5,type:''}] },
+    { name: 'ブリティッシュロック (I-bVII-IV)', chords: [{root:7,type:''},{root:5,type:''},{root:0,type:''},{root:7,type:''}] },
+  ]},
+  { name: '🎷 ジャズ', progs: [
+    { name: 'ii-V-I メジャー', chords: [{root:2,type:'m7'},{root:7,type:'7'},{root:0,type:'M7'}] },
+    { name: 'ii-V-i マイナー', chords: [{root:2,type:'m7b5'},{root:7,type:'7'},{root:0,type:'m7'}] },
+    { name: 'I-VI-II-V ターンアラウンド', chords: [{root:0,type:'M7'},{root:9,type:'7'},{root:2,type:'m7'},{root:7,type:'7'}] },
+    { name: 'ジャズブルース', chords: [{root:0,type:'7'},{root:5,type:'7'},{root:0,type:'7'},{root:7,type:'7'},{root:5,type:'7'},{root:0,type:'7'}] },
+    { name: 'リズムチェンジ A', chords: [{root:10,type:'M7'},{root:7,type:'m7'},{root:0,type:'m7'},{root:5,type:'7'}] },
+    { name: 'バックドア (IVm7-bVII7-IM7)', chords: [{root:5,type:'m7'},{root:10,type:'7'},{root:0,type:'M7'}] },
+    { name: 'コルトレーンチェンジ', chords: [{root:0,type:'M7'},{root:3,type:'M7'},{root:7,type:'M7'},{root:0,type:'M7'}] },
+    { name: 'モーダルジャズ (Dm Dorian)', chords: [{root:2,type:'m7'},{root:2,type:'m7'},{root:2,type:'m7'},{root:2,type:'m7'}] },
+    { name: 'クロマティック ii-V', chords: [{root:2,type:'m7'},{root:7,type:'7'},{root:1,type:'m7'},{root:6,type:'7'},{root:0,type:'M7'}] },
+    { name: 'トライトーンサブ (IIm7-bII7-IM7)', chords: [{root:2,type:'m7'},{root:1,type:'7'},{root:0,type:'M7'}] },
+    { name: 'ターンアラウンド (IM7-VIm7-IIm7-V7)', chords: [{root:0,type:'M7'},{root:9,type:'m7'},{root:2,type:'m7'},{root:7,type:'7'}] },
+    { name: 'レディバード', chords: [{root:0,type:'M7'},{root:3,type:'M7'},{root:8,type:'M7'},{root:1,type:'M7'}] },
+    { name: 'ボサノヴァ基本 (IM7-IIm7-V7-IM7)', chords: [{root:0,type:'M7'},{root:2,type:'m7'},{root:7,type:'7'},{root:0,type:'M7'}] },
+    { name: 'スイング定番 (I6-II7-V7-I6)', chords: [{root:0,type:'6'},{root:2,type:'7'},{root:7,type:'7'},{root:0,type:'6'}] },
+    { name: 'ディミニッシュ経過 (IM7-#Idim7-IIm7-V7)', chords: [{root:0,type:'M7'},{root:1,type:'dim7'},{root:2,type:'m7'},{root:7,type:'7'}] },
+  ]},
+  { name: '🎙️ R&B / ソウル', progs: [
+    { name: 'ネオソウル (IIm9-V-IM9)', chords: [{root:2,type:'m9'},{root:7,type:'9'},{root:0,type:'M9'}] },
+    { name: 'モータウン (I-IV-vi-V)', chords: [{root:0,type:''},{root:5,type:''},{root:9,type:'m'},{root:7,type:''}] },
+    { name: 'R&Bバラード (IM7-IIIm7-IVM7-V7)', chords: [{root:0,type:'M7'},{root:4,type:'m7'},{root:5,type:'M7'},{root:7,type:'7'}] },
+    { name: 'スムースR&B (IIm7-V7-IIIm7-VIm7)', chords: [{root:2,type:'m7'},{root:7,type:'7'},{root:4,type:'m7'},{root:9,type:'m7'}] },
+    { name: 'ゴスペルターン (I-I7-IV-IVm-I)', chords: [{root:0,type:''},{root:0,type:'7'},{root:5,type:''},{root:5,type:'m'},{root:0,type:''}] },
+    { name: '90s R&B (IVM7-IIIm7-IIm7-V7)', chords: [{root:5,type:'M7'},{root:4,type:'m7'},{root:2,type:'m7'},{root:7,type:'7'}] },
+    { name: 'ファンク (I7-IV7)', chords: [{root:0,type:'7'},{root:5,type:'7'}] },
+    { name: 'ソウルバラード (IM7-VIm7-IIm7-V7)', chords: [{root:3,type:'M7'},{root:0,type:'m7'},{root:5,type:'m7'},{root:10,type:'7'}] },
+    { name: 'コンテンポラリーR&B (vi-IV-I-V)', chords: [{root:9,type:'m'},{root:5,type:''},{root:0,type:''},{root:7,type:''}] },
+    { name: 'ニュージャックスイング', chords: [{root:2,type:'m7'},{root:7,type:'7'},{root:0,type:'M7'},{root:9,type:'m7'}] },
+    { name: 'チルR&B (IM9-VIm9-IVM9)', chords: [{root:0,type:'M9'},{root:9,type:'m9'},{root:5,type:'M9'},{root:7,type:'9'}] },
+    { name: 'PBR&B (vim7-IVM7-IM7-V7)', chords: [{root:9,type:'m7'},{root:5,type:'M7'},{root:0,type:'M7'},{root:7,type:'7'}] },
+    { name: 'ドゥーワップ (I-vi-ii-V)', chords: [{root:0,type:''},{root:9,type:'m'},{root:2,type:'m'},{root:7,type:''}] },
+    { name: 'スロージャム (IM7-IIm7-IIIm7-IVM7)', chords: [{root:0,type:'M7'},{root:2,type:'m7'},{root:4,type:'m7'},{root:5,type:'M7'}] },
+    { name: 'アシッドソウル (Im7-IVm7-bVII7-bIIIM7)', chords: [{root:9,type:'m7'},{root:2,type:'m7'},{root:7,type:'7'},{root:0,type:'M7'}] },
+  ]},
+  { name: '🎺 ブルース', progs: [
+    { name: '12小節ブルース', chords: [{root:0,type:'7'},{root:0,type:'7'},{root:0,type:'7'},{root:0,type:'7'},{root:5,type:'7'},{root:5,type:'7'},{root:0,type:'7'},{root:0,type:'7'},{root:7,type:'7'},{root:5,type:'7'},{root:0,type:'7'},{root:7,type:'7'}] },
+    { name: 'マイナーブルース', chords: [{root:0,type:'m7'},{root:0,type:'m7'},{root:0,type:'m7'},{root:0,type:'m7'},{root:5,type:'m7'},{root:5,type:'m7'},{root:0,type:'m7'},{root:0,type:'m7'},{root:8,type:'7'},{root:7,type:'7'},{root:0,type:'m7'},{root:7,type:'7'}] },
+    { name: 'クイックチェンジ', chords: [{root:0,type:'7'},{root:5,type:'7'},{root:0,type:'7'},{root:0,type:'7'},{root:5,type:'7'},{root:5,type:'7'},{root:0,type:'7'},{root:0,type:'7'},{root:7,type:'7'},{root:5,type:'7'},{root:0,type:'7'},{root:7,type:'7'}] },
+    { name: 'スローブルース (I7-IV7-I7-V7)', chords: [{root:0,type:'7'},{root:5,type:'7'},{root:0,type:'7'},{root:7,type:'7'}] },
+    { name: 'ストレーニング', chords: [{root:0,type:'7'},{root:5,type:'7'},{root:6,type:'dim'},{root:0,type:'7'},{root:7,type:'7'}] },
+    { name: 'ジャズブルース拡張', chords: [{root:0,type:'7'},{root:5,type:'7'},{root:0,type:'7'},{root:9,type:'7'},{root:2,type:'m7'},{root:7,type:'7'},{root:0,type:'7'},{root:1,type:'7'}] },
+    { name: '8小節ブルース', chords: [{root:0,type:'7'},{root:0,type:'7'},{root:5,type:'7'},{root:5,type:'7'},{root:7,type:'7'},{root:5,type:'7'},{root:0,type:'7'},{root:7,type:'7'}] },
+  ]},
+  { name: '🎛️ EDM / エレクトロ', progs: [
+    { name: 'ユーロビート (vi-IV-I-V)', chords: [{root:9,type:'m'},{root:5,type:''},{root:0,type:''},{root:7,type:''}] },
+    { name: 'トランス (i-bVI-bIII-bVII)', chords: [{root:9,type:'m'},{root:5,type:''},{root:0,type:''},{root:7,type:''}] },
+    { name: 'ハウス (i-bVII-bVI-bVII)', chords: [{root:9,type:'m'},{root:7,type:''},{root:5,type:''},{root:7,type:''}] },
+    { name: 'フューチャーベース (I-iii-vi-IV)', chords: [{root:0,type:''},{root:4,type:'m'},{root:9,type:'m'},{root:5,type:''}] },
+    { name: 'ダブステップ (i-bVI-bIII-iv)', chords: [{root:2,type:'m'},{root:10,type:''},{root:5,type:''},{root:7,type:'m'}] },
+    { name: 'チルウェーブ (IM7-IVM7-vim7-V7)', chords: [{root:0,type:'M7'},{root:5,type:'M7'},{root:9,type:'m7'},{root:7,type:'7'}] },
+    { name: 'プログレッシブ (i-iv-bVI-V)', chords: [{root:9,type:'m'},{root:2,type:'m'},{root:5,type:''},{root:4,type:''}] },
+    { name: 'トロピカルハウス (I-V-vi-IV)', chords: [{root:0,type:''},{root:7,type:''},{root:9,type:'m'},{root:5,type:''}] },
+    { name: 'エレクトロポップ (I-IV-vi-V)', chords: [{root:0,type:''},{root:5,type:''},{root:9,type:'m'},{root:7,type:''}] },
+    { name: 'シンセウェーブ (i-bIII-bVII-iv)', chords: [{root:9,type:'m'},{root:0,type:''},{root:7,type:''},{root:2,type:'m'}] },
+    { name: 'ドラムンベース (i-bVI-iv-bVII)', chords: [{root:9,type:'m'},{root:5,type:''},{root:2,type:'m'},{root:7,type:''}] },
+    { name: 'アンビエント (IM9-IVM9-vim9)', chords: [{root:0,type:'M9'},{root:5,type:'M9'},{root:9,type:'m9'}] },
+    { name: 'テクノループ (i-i-bVII-bVII)', chords: [{root:9,type:'m'},{root:9,type:'m'},{root:7,type:''},{root:7,type:''}] },
+    { name: 'ビッグルーム (vi-IV-I-V)', chords: [{root:9,type:'m'},{root:5,type:''},{root:0,type:''},{root:7,type:''}] },
+    { name: 'ローファイハウス (im7-ivm7-bVII7)', chords: [{root:9,type:'m7'},{root:2,type:'m7'},{root:7,type:'7'}] },
+  ]},
+  { name: '🎻 クラシカル / 映画音楽', progs: [
+    { name: '完全終止 (V-I)', chords: [{root:7,type:''},{root:0,type:''}] },
+    { name: '偽終止 (V-vi)', chords: [{root:7,type:''},{root:9,type:'m'}] },
+    { name: '変終止 (IV-I)', chords: [{root:5,type:''},{root:0,type:''}] },
+    { name: '半終止 (I-V)', chords: [{root:0,type:''},{root:7,type:''}] },
+    { name: 'ロマン派風 (I-bVI-bIII-bVII-IV-I)', chords: [{root:0,type:''},{root:8,type:''},{root:3,type:''},{root:10,type:''},{root:5,type:''},{root:0,type:''}] },
+    { name: '悲愴風 (i-iv-V-i)', chords: [{root:0,type:'m'},{root:5,type:'m'},{root:7,type:''},{root:0,type:'m'}] },
+    { name: 'ワルツ (I-V7-I-IV-I-V7-I)', chords: [{root:0,type:''},{root:7,type:'7'},{root:0,type:''},{root:5,type:''},{root:0,type:''},{root:7,type:'7'},{root:0,type:''}] },
+    { name: 'バロック風 (i-iv-V-i-bVI-V)', chords: [{root:9,type:'m'},{root:2,type:'m'},{root:4,type:''},{root:9,type:'m'},{root:5,type:''},{root:4,type:''}] },
+    { name: '映画エピック (I-bVI-bIII-bVII)', chords: [{root:0,type:''},{root:8,type:''},{root:3,type:''},{root:10,type:''}] },
+    { name: 'サスペンス (i-bII-i-V)', chords: [{root:9,type:'m'},{root:10,type:''},{root:9,type:'m'},{root:4,type:''}] },
+    { name: '勝利のテーマ (I-V-bVII-IV-I)', chords: [{root:0,type:''},{root:7,type:''},{root:10,type:''},{root:5,type:''},{root:0,type:''}] },
+    { name: 'ナポリ進行 (i-bII-V-i)', chords: [{root:9,type:'m'},{root:10,type:''},{root:4,type:''},{root:9,type:'m'}] },
+    { name: '下行バス (i-i/bVII-bVI-V)', chords: [{root:9,type:'m'},{root:9,type:'m'},{root:5,type:''},{root:4,type:''}] },
+    { name: '増6度 (i-bVI-V-i)', chords: [{root:9,type:'m'},{root:5,type:'aug'},{root:4,type:''},{root:9,type:'m'}] },
+    { name: '聖歌風 (I-IV-I-V-I)', chords: [{root:0,type:''},{root:5,type:''},{root:0,type:''},{root:7,type:''},{root:0,type:''}] },
+  ]},
+  { name: '🌴 ボサノヴァ / ラテン', progs: [
+    { name: 'イパネマ風 (IM7-II7-IIm7-bII7)', chords: [{root:5,type:'M7'},{root:7,type:'7'},{root:7,type:'m7'},{root:6,type:'7'}] },
+    { name: 'ボサノヴァ基本 (IM7-IIm7-IIIm7-IVM7)', chords: [{root:0,type:'M7'},{root:2,type:'m7'},{root:4,type:'m7'},{root:5,type:'M7'}] },
+    { name: 'サンバ (I-II7-IIm7-V7)', chords: [{root:0,type:''},{root:2,type:'7'},{root:2,type:'m7'},{root:7,type:'7'}] },
+    { name: 'ラテンジャズ (Im7-bIIIM7-IIm7b5-V7)', chords: [{root:9,type:'m7'},{root:0,type:'M7'},{root:11,type:'m7b5'},{root:4,type:'7'}] },
+    { name: 'サルサ (I-IV-V-I)', chords: [{root:0,type:''},{root:5,type:''},{root:7,type:''},{root:0,type:''}] },
+    { name: 'レゲトン (i-bVII-bVI-V)', chords: [{root:9,type:'m'},{root:7,type:''},{root:5,type:''},{root:4,type:''}] },
+    { name: 'ボレロ (I-I-IV-V)', chords: [{root:0,type:''},{root:0,type:''},{root:5,type:''},{root:7,type:''}] },
+    { name: 'タンゴ (i-iv-V7-i)', chords: [{root:9,type:'m'},{root:2,type:'m'},{root:4,type:'7'},{root:9,type:'m'}] },
+    { name: 'ショーロ (IM7-VI7-IIm7-V7)', chords: [{root:0,type:'M7'},{root:9,type:'7'},{root:2,type:'m7'},{root:7,type:'7'}] },
+  ]},
+  { name: '🪕 フォーク / カントリー', progs: [
+    { name: 'フォーク基本 (I-IV-V-I)', chords: [{root:7,type:''},{root:0,type:''},{root:2,type:''},{root:7,type:''}] },
+    { name: 'カントリー (I-IV-I-V-I)', chords: [{root:7,type:''},{root:0,type:''},{root:7,type:''},{root:2,type:''},{root:7,type:''}] },
+    { name: 'トレイン (I-IV-I-V)', chords: [{root:0,type:''},{root:5,type:''},{root:0,type:''},{root:7,type:''}] },
+    { name: 'ブルーグラス (I-I-IV-I-I-V-I)', chords: [{root:7,type:''},{root:7,type:''},{root:0,type:''},{root:7,type:''},{root:7,type:''},{root:2,type:''},{root:7,type:''}] },
+    { name: 'アメリカーナ (I-bVII-IV-I)', chords: [{root:7,type:''},{root:5,type:''},{root:0,type:''},{root:7,type:''}] },
+    { name: 'フォークロック (I-V-IV-I)', chords: [{root:2,type:''},{root:9,type:''},{root:7,type:''},{root:2,type:''}] },
+    { name: 'ケルティック (i-bVII-bVI-bVII)', chords: [{root:9,type:'m'},{root:7,type:''},{root:5,type:''},{root:7,type:''}] },
+    { name: 'フィンガーピッキング (I-iii-IV-I)', chords: [{root:0,type:''},{root:4,type:'m'},{root:5,type:''},{root:0,type:''}] },
+    { name: 'カントリーバラード (I-vi-IV-V)', chords: [{root:7,type:''},{root:4,type:'m'},{root:0,type:''},{root:2,type:''}] },
+  ]},
+  { name: '🔮 特殊 / 変則', progs: [
+    { name: '全音下行 (I-bVII-bVI-bV)', chords: [{root:0,type:''},{root:10,type:''},{root:8,type:''},{root:6,type:''}] },
+    { name: 'クリシェ上行 (Im-ImM7-Im7-Im6)', chords: [{root:9,type:'m'},{root:9,type:'m'},{root:9,type:'m7'},{root:9,type:'m6'}] },
+    { name: 'クリシェ下行 (I-IM7-I7-I6)', chords: [{root:0,type:''},{root:0,type:'M7'},{root:0,type:'7'},{root:0,type:'6'}] },
+    { name: '平行移動 (IM7-bIIM7)', chords: [{root:0,type:'M7'},{root:1,type:'M7'},{root:0,type:'M7'},{root:1,type:'M7'}] },
+    { name: 'ペダルポイント (I-IV-V on I)', chords: [{root:0,type:''},{root:5,type:''},{root:7,type:''},{root:0,type:''}] },
+    { name: '4度進行 (I-IV-bVII-bIII-bVI-bII-V-I)', chords: [{root:0,type:''},{root:5,type:''},{root:10,type:''},{root:3,type:''},{root:8,type:''},{root:1,type:''},{root:7,type:''},{root:0,type:''}] },
+    { name: '3度下行 (I-vi-IV-ii-bVII-V)', chords: [{root:0,type:''},{root:9,type:'m'},{root:5,type:''},{root:2,type:'m'},{root:10,type:''},{root:7,type:''}] },
+    { name: '半音クリシェ (i-bII-i-bII)', chords: [{root:4,type:'m'},{root:5,type:''},{root:4,type:'m'},{root:5,type:''}] },
+    { name: 'ホールトーン (I-II-III)', chords: [{root:0,type:''},{root:2,type:''},{root:4,type:''}] },
+    { name: 'ミクソリディアン (I-bVII-IV-I)', chords: [{root:7,type:''},{root:5,type:''},{root:0,type:''},{root:7,type:''}] },
+    { name: 'ドリアン vamp (Im7-IV)', chords: [{root:2,type:'m7'},{root:7,type:'M7'}] },
+    { name: 'リディアン浮遊 (IM7-IIM7)', chords: [{root:0,type:'M7'},{root:2,type:'M7'}] },
+    { name: 'フリジアン (i-bII-i)', chords: [{root:4,type:'m'},{root:5,type:''},{root:4,type:'m'}] },
+    { name: 'オーギュメント経過 (I-I+-vi-IV)', chords: [{root:0,type:''},{root:0,type:'aug'},{root:9,type:'m'},{root:5,type:''}] },
+  ]},
 ];
+
+// Flatten for indexed access
+const PROGS = [];
+PROG_CATEGORIES.forEach(cat => {
+  cat.progs.forEach(p => {
+    PROGS.push({ ...p, category: cat.name });
+  });
+});
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let midiAccess = null;
@@ -563,6 +594,12 @@ function toggleHint() {
   const b = document.getElementById('hintBtn');
   b.textContent = `コード名を表示: ${showHint ? 'ON' : 'OFF'}`;
   b.classList.toggle('on', showHint);
+  render(); update();
+}
+function randomProg() {
+  progIdx = Math.floor(Math.random() * PROGS.length);
+  document.getElementById('progSel').value = progIdx;
+  chordIdx = 0; doneSet.clear(); pressed.clear();
   render(); update();
 }
 
@@ -804,10 +841,17 @@ function updatePiano() {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function populateProgs() {
   const sel = document.getElementById('progSel');
-  PROGS.forEach((p, i) => {
-    const o = document.createElement('option');
-    o.value = i; o.textContent = p.name;
-    sel.appendChild(o);
+  let globalIdx = 0;
+  PROG_CATEGORIES.forEach(cat => {
+    const group = document.createElement('optgroup');
+    group.label = cat.name;
+    cat.progs.forEach(p => {
+      const o = document.createElement('option');
+      o.value = globalIdx; o.textContent = p.name;
+      group.appendChild(o);
+      globalIdx++;
+    });
+    sel.appendChild(group);
   });
   sel.addEventListener('change', () => {
     progIdx = parseInt(sel.value);
