@@ -270,6 +270,17 @@
     </div>
     <button class="toggle on" id="autoBtn" onclick="toggleAuto()">自動進む: ON</button>
     <button class="toggle on" id="hintBtn" onclick="toggleHint()">コード名を表示: ON</button>
+    <button class="toggle" id="autoTransBtn" onclick="toggleAutoTrans()">自動移行: OFF</button>
+    <div class="ctrl-group" id="loopGroup" style="display:none">
+      <span class="ctrl-label">周回数:</span>
+      <select id="loopSel">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="5">5</option>
+        <option value="10">10</option>
+      </select>
+    </div>
   </div>
 
   <div class="prog-bar" id="progBar"></div>
@@ -504,6 +515,9 @@ let autoAdvance = true;
 let showHint    = true;
 let correctTimer = null;
 let doneSet     = new Set(); // chord indices played correctly this loop
+let autoTransition = false;  // auto-transition to random prog after N loops
+let targetLoops    = 1;      // number of loops before transition
+let currentLoopCount = 0;    // how many full loops completed
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function chordName(root, type) {
@@ -569,7 +583,14 @@ function chordsMatch(det, tgt) {
 function moveNext() {
   const len = currentProg().chords.length;
   chordIdx = (chordIdx + 1) % len;
-  if (chordIdx === 0) doneSet.clear();
+  if (chordIdx === 0) {
+    doneSet.clear();
+    currentLoopCount++;
+    if (autoTransition && currentLoopCount >= targetLoops) {
+      setTimeout(() => autoTransitionToRandom(), 400);
+      return;
+    }
+  }
   pressed.clear();
   render(); update();
 }
@@ -581,6 +602,7 @@ function movePrev() {
 }
 function doReset() {
   chordIdx = 0; doneSet.clear(); pressed.clear();
+  currentLoopCount = 0;
   render(); update();
 }
 function toggleAuto() {
@@ -600,7 +622,61 @@ function randomProg() {
   progIdx = Math.floor(Math.random() * PROGS.length);
   document.getElementById('progSel').value = progIdx;
   chordIdx = 0; doneSet.clear(); pressed.clear();
+  currentLoopCount = 0;
   render(); update();
+  speakProgName();
+}
+
+function speakProgName() {
+  if ('speechSynthesis' in window) {
+    speechSynthesis.cancel();
+    const name = PROGS[progIdx].name.replace(/\s*[\(（].*?[\)）]/g, '');
+    const utter = new SpeechSynthesisUtterance(name);
+    utter.lang = 'ja-JP';
+    utter.rate = 1.1;
+    utter.volume = 0.8;
+    speechSynthesis.speak(utter);
+  }
+}
+
+function toggleAutoTrans() {
+  autoTransition = !autoTransition;
+  const b = document.getElementById('autoTransBtn');
+  b.textContent = `自動移行: ${autoTransition ? 'ON' : 'OFF'}`;
+  b.classList.toggle('on', autoTransition);
+  document.getElementById('loopGroup').style.display = autoTransition ? 'flex' : 'none';
+  currentLoopCount = 0;
+}
+
+function autoTransitionToRandom() {
+  let newIdx;
+  do {
+    newIdx = Math.floor(Math.random() * PROGS.length);
+  } while (newIdx === progIdx && PROGS.length > 1);
+  progIdx = newIdx;
+  document.getElementById('progSel').value = progIdx;
+  chordIdx = 0; doneSet.clear(); pressed.clear();
+  currentLoopCount = 0;
+  render(); update();
+  speakProgName();
+  showTransitionNotice();
+}
+
+function showTransitionNotice() {
+  let el = document.getElementById('transNotice');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'transNotice';
+    el.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%);' +
+      'background:linear-gradient(135deg,#1f3a6e,#122d1a);color:#3fb950;padding:12px 28px;' +
+      'border-radius:12px;font-size:15px;font-weight:700;z-index:999;border:1px solid #3fb950;' +
+      'box-shadow:0 8px 32px rgba(0,0,0,.5);opacity:0;transition:opacity .3s;pointer-events:none;' +
+      'white-space:nowrap;';
+    document.body.appendChild(el);
+  }
+  el.textContent = '🔀 ' + PROGS[progIdx].name;
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, 2500);
 }
 
 // ─── MIDI ─────────────────────────────────────────────────────────────────────
@@ -856,7 +932,9 @@ function populateProgs() {
   sel.addEventListener('change', () => {
     progIdx = parseInt(sel.value);
     chordIdx = 0; doneSet.clear(); pressed.clear();
+    currentLoopCount = 0;
     render(); update();
+    speakProgName();
   });
 }
 
@@ -865,6 +943,10 @@ document.getElementById('keySel').addEventListener('change', e => {
   transpose = parseInt(e.target.value);
   doneSet.clear(); pressed.clear();
   render(); update();
+});
+document.getElementById('loopSel').addEventListener('change', e => {
+  targetLoops = parseInt(e.target.value);
+  currentLoopCount = 0;
 });
 
 populateProgs();
